@@ -9,7 +9,7 @@ export const mapService = {
 }
 
 // TODO: Enter your API Key
-const API_KEY = ''
+const API_KEY = 'AIzaSyBW1ChH3d2QemFv-Fqvr9QJVE5yveyWU3g'
 
 var gMap
 var gMarker
@@ -54,7 +54,7 @@ function lookupAddressGeo(geoOrAddress) {
                 lng: geometry.location.lng,
                 zoom: gMap.getZoom()
             }
-            // console.log('GEO IS', geo)
+            console.log('GEO IS', geo)
             return geo
         })
 
