@@ -37,6 +37,7 @@ function onInit() {
 function renderLocs(locs) {
   const selectedLocId = getLocIdFromQueryParams()
   var distance
+  var km = 'KM'
 
   var strHTML = locs
     .map((loc) => {
@@ -44,13 +45,16 @@ function renderLocs(locs) {
         let { lat, lng } = loc.geo
         distance = utilService.getDistance(gUserPos, { lat, lng })
       }
-
+      if (!distance) {
+        distance = ''
+        km = ''
+      }
       const className = loc.id === selectedLocId ? 'active' : ''
       return `
         <li class="loc ${className}" data-id="${loc.id}">
             <h4>  
                 <span>${loc.name}</span>
-                <span>${distance} KM</span>
+                <span>${distance}${km}</span>
                 <span title="${loc.rate} stars">${'★'.repeat(loc.rate)}</span>
             </h4>
             <p class="muted">
