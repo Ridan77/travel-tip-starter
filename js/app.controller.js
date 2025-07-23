@@ -45,14 +45,12 @@ function renderLocs(locs) {
         distance = utilService.getDistance(gUserPos, { lat, lng })
       }
 
-      //    console.log(distance);
-
       const className = loc.id === selectedLocId ? 'active' : ''
       return `
         <li class="loc ${className}" data-id="${loc.id}">
             <h4>  
                 <span>${loc.name}</span>
-                <span>${distance}</span>
+                <span>${distance} KM</span>
                 <span title="${loc.rate} stars">${'★'.repeat(loc.rate)}</span>
             </h4>
             <p class="muted">
@@ -209,7 +207,7 @@ function displayLoc(loc) {
     var distance
     let { lat, lng } = loc.geo
     distance = utilService.getDistance(gUserPos, { lat, lng })
-    el.querySelector('.loc-distance').innerText = `Distance: ${distance}K `
+    el.querySelector('.loc-distance').innerText = `Distance: ${distance}KM `
   }
 
   el.querySelector('.loc-name').innerText = loc.name
