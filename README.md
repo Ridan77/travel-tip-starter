@@ -52,6 +52,7 @@ export const locService = {
     setFilterBy,
     setSortBy,
     getLocCountByRateMap
+    getLocCountByDateMap
 }
 
 export const mapService = {
