@@ -14,7 +14,7 @@ import { storageService } from './async-storage.service.js'
 //     createdAt: 1706562160181,
 //     updatedAt: 1706562160181
 // }
-
+const gH24 = 1000*60*60*24 
 const PAGE_SIZE = 5
 const DB_KEY = 'locs'
 var gSortBy = { rate: -1 }
@@ -30,16 +30,18 @@ export const locService = {
     save,
     setFilterBy,
     setSortBy,
-    getLocCountByRateMap
+    getLocCountByRateMap,
+    getLocCountByDateMap,
+    getLocCountByDateMap,
 }
 
 function query() {
     return storageService.query(DB_KEY)
         .then(locs => {
-            
+
             if (gFilterBy.txt) {
                 const regex = new RegExp(gFilterBy.txt, 'i')
-                locs = locs.filter(loc => regex.test(loc.name)||regex.test(loc.geo.address))
+                locs = locs.filter(loc => regex.test(loc.name) || regex.test(loc.geo.address))
             }
             if (gFilterBy.minRate) {
                 locs = locs.filter(loc => loc.rate >= gFilterBy.minRate)
@@ -50,7 +52,6 @@ function query() {
                 const startIdx = gPageIdx * PAGE_SIZE
                 locs = locs.slice(startIdx, startIdx + PAGE_SIZE)
             }
-            console.log(gSortBy)
             if (gSortBy.rate !== undefined) {
                 locs.sort((p1, p2) => (p1.rate - p2.rate) * gSortBy.rate)
             } else if (gSortBy.name !== undefined) {
@@ -100,6 +101,23 @@ function getLocCountByRateMap() {
             return locCountByRateMap
         })
 }
+
+
+function getLocCountByDateMap() {
+    return storageService.query(DB_KEY)
+        .then(locs => {
+            const locCountByDateMap = locs.reduce((map, loc) => {
+                if (loc.updatedAt===loc.createdAt) map.never++
+                else if (Date.now()-loc.updatedAt<gH24) map.today++
+                else map.past++
+                return map
+            }, { never: 0, today: 0, past: 0 })
+            locCountByDateMap.total = locs.length
+            return locCountByDateMap
+        })
+}
+
+
 
 function setSortBy(sortBy = {}) {
     gSortBy = sortBy

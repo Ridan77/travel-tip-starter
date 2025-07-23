@@ -70,7 +70,7 @@ function renderLocs(locs) {
 
 function onRemoveLoc(locId) {
     const isSure = confirm('Are you sure?')
-    if (!isSure)return
+    if (!isSure) return
     locService.remove(locId)
         .then(() => {
             flashMsg('Location removed')
@@ -225,7 +225,7 @@ function getFilterByFromQueryParams() {
     const queryParams = new URLSearchParams(window.location.search)
     const txt = queryParams.get('txt') || ''
     const minRate = queryParams.get('minRate') || 0
-    locService.setFilterBy({txt, minRate})
+    locService.setFilterBy({ txt, minRate })
 
     document.querySelector('input[name="filter-by-txt"]').value = txt
     document.querySelector('input[name="filter-by-rate"]').value = minRate
@@ -262,9 +262,17 @@ function onSetFilterBy({ txt, minRate }) {
 }
 
 function renderLocStats() {
-    locService.getLocCountByRateMap().then(stats => {
-        handleStats(stats, 'loc-stats-rate')
-    })
+    locService.getLocCountByRateMap()
+        .then(stats => {
+            handleStats(stats, 'loc-stats-rate')
+        })
+    locService.getLocCountByDateMap()
+        .then(stats => {
+            handleStats(stats, 'loc-stats-date')
+        })
+        .catch(err => {
+            console.error('get Date:', err)
+        })
 }
 
 function handleStats(stats, selector) {
@@ -272,7 +280,6 @@ function handleStats(stats, selector) {
     // stats = { low: 5, medium: 5, high: 5, baba: 55, mama: 30, total: 100 }
     const labels = cleanStats(stats)
     const colors = utilService.getColors()
-
     var sumPercent = 0
     var colorsStr = `${colors[0]} ${0}%, `
     labels.forEach((label, idx) => {
