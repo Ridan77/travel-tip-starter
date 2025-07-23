@@ -4,6 +4,8 @@ import { mapService } from './services/map.service.js'
 
 window.onload = onInit
 let gUserPos = null
+var gKeepResolve = null
+var gLocToEditId = null
 
 // To make things easier in this project structure
 // functions that are called from DOM are defined on a global app object
@@ -17,6 +19,7 @@ window.app = {
   onShareLoc,
   onSetSortBy,
   onSetFilterBy,
+  onSubmit,
 }
 
 function onInit() {
@@ -93,18 +96,19 @@ function renderLocs(locs) {
 }
 
 function onRemoveLoc(locId) {
-    const isSure = confirm('Are you sure?')
-    if (!isSure) return
-    locService.remove(locId)
-        .then(() => {
-            flashMsg('Location removed')
-            unDisplayLoc()
-            loadAndRenderLocs()
-        })
-        .catch(err => {
-            console.error('OOPs:', err)
-            flashMsg('Cannot remove location')
-        })
+  const isSure = confirm('Are you sure?')
+  if (!isSure) return
+  locService
+    .remove(locId)
+    .then(() => {
+      flashMsg('Location removed')
+      unDisplayLoc()
+      loadAndRenderLocs()
+    })
+    .catch((err) => {
+      console.error('OOPs:', err)
+      flashMsg('Cannot remove location')
+    })
 }
 
 function onSearchAddress(ev) {
@@ -122,25 +126,46 @@ function onSearchAddress(ev) {
 }
 
 function onAddLoc(geo) {
-  const locName = prompt('Loc name', geo.address || 'Just a place')
-  if (!locName) return
-
-  const loc = {
-    name: locName,
-    rate: +prompt(`Rate (1-5)`, '3'),
-    geo,
-  }
-  locService
-    .save(loc)
-    .then((savedLoc) => {
-      flashMsg(`Added Location (id: ${savedLoc.id})`)
-      utilService.updateQueryParams({ locId: savedLoc.id })
-      loadAndRenderLocs()
+  gLocToEditId = null
+  askUser()
+    .then((newLoc) => {
+      if (!newLoc.name||!newLoc.rate) return
+      const loc = {
+        name: newLoc.name,
+        rate: newLoc.rate,
+        geo,
+      }
+      locService.save(loc).then((savedLoc) => {
+        flashMsg(`Added Location (id: ${savedLoc.id})`)
+        utilService.updateQueryParams({ locId: savedLoc.id })
+        loadAndRenderLocs()
+      })
     })
+
     .catch((err) => {
       console.error('OOPs:', err)
       flashMsg('Cannot add location')
     })
+}
+
+function onSubmit(elForm) {
+  const name = elForm.querySelector('[name="name"]').value
+  const rate = +elForm.querySelector('[name="rate"]').value
+  if (!gLocToEditId) {
+    const loc = { name, rate }
+    gKeepResolve(loc)
+  } else {
+    gKeepResolve(rate)
+  }
+  document.querySelector('.modal').close()
+  elForm.reset()
+}
+
+function askUser() {
+  document.querySelector('.modal').showModal()
+  return new Promise((resolve) => {
+    gKeepResolve = resolve
+  })
 }
 
 function loadAndRenderLocs() {
@@ -171,20 +196,25 @@ function onPanToUserPos() {
 
 function onUpdateLoc(locId) {
   locService.getById(locId).then((loc) => {
-    const rate = prompt('New rate?', loc.rate)
-    if (rate && rate !== loc.rate) {
-      loc.rate = rate
-      locService
-        .save(loc)
-        .then((savedLoc) => {
-          flashMsg(`Rate was set to: ${savedLoc.rate}`)
-          loadAndRenderLocs()
-        })
-        .catch((err) => {
-          console.error('OOPs:', err)
-          flashMsg('Cannot update location')
-        })
-    }
+    gLocToEditId = loc.id
+    document.querySelector('[name="name"]').value = loc.name
+    document.querySelector('[name="rate"]').value = loc.rate
+    askUser().then((newRate) => {
+      const rate = newRate
+      if (rate && rate !== loc.rate) {
+        loc.rate = rate
+        locService
+          .save(loc)
+          .then((savedLoc) => {
+            flashMsg(`Rate was set to: ${savedLoc.rate}`)
+            loadAndRenderLocs()
+          })
+          .catch((err) => {
+            console.error('OOPs:', err)
+            flashMsg('Cannot update location')
+          })
+      }
+    })
   })
 }
 
@@ -258,10 +288,10 @@ function flashMsg(msg) {
 }
 
 function getFilterByFromQueryParams() {
-    const queryParams = new URLSearchParams(window.location.search)
-    const txt = queryParams.get('txt') || ''
-    const minRate = queryParams.get('minRate') || 0
-    locService.setFilterBy({ txt, minRate })
+  const queryParams = new URLSearchParams(window.location.search)
+  const txt = queryParams.get('txt') || ''
+  const minRate = queryParams.get('minRate') || 0
+  locService.setFilterBy({ txt, minRate })
 
   document.querySelector('input[name="filter-by-txt"]').value = txt
   document.querySelector('input[name="filter-by-rate"]').value = minRate
@@ -298,36 +328,36 @@ function onSetFilterBy({ txt, minRate }) {
 }
 
 function renderLocStats() {
-    locService.getLocCountByRateMap()
-        .then(stats => {
-            handleStats(stats, 'loc-stats-rate')
-        })
-    locService.getLocCountByDateMap()
-        .then(stats => {
-            handleStats(stats, 'loc-stats-date')
-        })
-        .catch(err => {
-            console.error('get Date:', err)
-        })
+  locService.getLocCountByRateMap().then((stats) => {
+    handleStats(stats, 'loc-stats-rate')
+  })
+  locService
+    .getLocCountByDateMap()
+    .then((stats) => {
+      handleStats(stats, 'loc-stats-date')
+    })
+    .catch((err) => {
+      console.error('get Date:', err)
+    })
 }
 
 function handleStats(stats, selector) {
-    // stats = { low: 37, medium: 11, high: 100, total: 148 }
-    // stats = { low: 5, medium: 5, high: 5, baba: 55, mama: 30, total: 100 }
-    const labels = cleanStats(stats)
-    const colors = utilService.getColors()
-    var sumPercent = 0
-    var colorsStr = `${colors[0]} ${0}%, `
-    labels.forEach((label, idx) => {
-        if (idx === labels.length - 1) return
-        const count = stats[label]
-        const percent = Math.round((count / stats.total) * 100, 2)
-        sumPercent += percent
-        colorsStr += `${colors[idx]} ${sumPercent}%, `
-        if (idx < labels.length - 1) {
-            colorsStr += `${colors[idx + 1]} ${sumPercent}%, `
-        }
-    })
+  // stats = { low: 37, medium: 11, high: 100, total: 148 }
+  // stats = { low: 5, medium: 5, high: 5, baba: 55, mama: 30, total: 100 }
+  const labels = cleanStats(stats)
+  const colors = utilService.getColors()
+  var sumPercent = 0
+  var colorsStr = `${colors[0]} ${0}%, `
+  labels.forEach((label, idx) => {
+    if (idx === labels.length - 1) return
+    const count = stats[label]
+    const percent = Math.round((count / stats.total) * 100, 2)
+    sumPercent += percent
+    colorsStr += `${colors[idx]} ${sumPercent}%, `
+    if (idx < labels.length - 1) {
+      colorsStr += `${colors[idx + 1]} ${sumPercent}%, `
+    }
+  })
 
   colorsStr += `${colors[labels.length - 1]} ${100}%`
   // Example:
