@@ -17,6 +17,8 @@ window.app = {
   onShareLoc,
   onSetSortBy,
   onSetFilterBy,
+  onToggleTheme,
+
 }
 
 function onInit() {
@@ -360,4 +362,10 @@ function cleanStats(stats) {
     return acc
   }, [])
   return cleanedStats
+}
+
+function onToggleTheme(){
+const elBody =  document.querySelector('body')
+elBody.classList.toggle('theme-blue')
+
 }
