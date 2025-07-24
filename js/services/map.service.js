@@ -69,7 +69,7 @@ function addClickListener(cb) {
     }
     cb(geo)
     // lookupAddressGeo(geo).then((data) => {
-    //   console.log(data)
+    //  console.log(data)
     // cb
     // })
   })
