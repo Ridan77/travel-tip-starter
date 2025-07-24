@@ -129,7 +129,8 @@ function onSearchAddress(ev) {
 
 function onAddLoc(geo) {
   gLocToEditId = null
-  askUser()
+  console.log(geo)
+  askUser(geo)
     .then((newLoc) => {
       if (!newLoc.name||!newLoc.rate) return
       const loc = {
@@ -163,8 +164,9 @@ function onSubmit(elForm) {
   elForm.reset()
 }
 
-function askUser() {
+function askUser(geo) {
   document.querySelector('.modal').showModal()
+  document.querySelector('.text-input-modal').value= geo.address
   return new Promise((resolve) => {
     gKeepResolve = resolve
   })
